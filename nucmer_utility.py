@@ -23,6 +23,7 @@ def execute_promer(fasta1,
     '''
 
     import shell_command
+    import os
 
     #cmd1 = 'promer --mum -l 5 %s %s' % (fasta1, fasta2)
 
@@ -30,7 +31,7 @@ def execute_promer(fasta1,
     coord_files = []
     for one_fasta in fasta2:
         if algo == 'nucmer':
-            cmd1 = 'nucmer -mum -b 200 -c 65 -g 90 -l 20 -p %s %s %s' % (one_fasta.split('.')[0],
+            cmd1 = 'nucmer -mum -b 200 -c 65 -g 90 -l 20 -p %s %s %s' % (os.path.basename(one_fasta).split('.')[0],
                                                                          fasta1,
                                                                          one_fasta)
             a, b, c = shell_command.shell_command(cmd1)
@@ -40,8 +41,8 @@ def execute_promer(fasta1,
             if coords:
                 cmd2 = 'show-coords -T -r -c -L %s -I %s %s.delta > %s.coords' % (minimum_align_length,
                                                                                   minimum_identity,
-                                                                                  one_fasta.split('.')[0],
-                                                                                  one_fasta.split('.')[0])
+                                                                                  os.path.basename(one_fasta).split('.')[0],
+                                                                                  os.path.basename(one_fasta).split('.')[0])
                 a, b, c = shell_command.shell_command(cmd2)
                 if c != 0:
                     raise("%s" % b)
@@ -49,7 +50,7 @@ def execute_promer(fasta1,
 
         elif algo == 'promer':
             # promer --mum -l 5
-            cmd1 = 'promer -l 5 -p %s %s %s' % (one_fasta.split('.')[0],
+            cmd1 = 'promer -l 5 -p %s %s %s' % (os.path.basename(one_fasta).split('.')[0],
                                                 fasta1,
                                                 one_fasta)
 
@@ -61,8 +62,8 @@ def execute_promer(fasta1,
                 # show-coords -T -r -c -L 100 -I 30 out.delta
                 cmd2 = 'show-coords -T -r -c -L %s -I %s %s.delta > %s.coords' % (minimum_align_length,
                                                                                   minimum_identity,
-                                                                                  one_fasta.split('.')[0],
-                                                                                  one_fasta.split('.')[0])
+                                                                                  os.path.basename(one_fasta).split('.')[0],
+                                                                                  os.path.basename(one_fasta).split('.')[0])
 
                 a, b, c = shell_command.shell_command(cmd2)
                 if c != 0:
@@ -70,9 +71,9 @@ def execute_promer(fasta1,
 
 
 
-        delta_files.append('%s.delta' % one_fasta.split('.')[0])
+        delta_files.append('%s.delta' % os.path.basename(one_fasta).split('.')[0])
         if coords:
-            coord_files.append('%s.coords' % one_fasta.split('.')[0])
+            coord_files.append('%s.coords' % os.path.basename(one_fasta).split('.')[0])
 
     return coord_files, delta_files
 
