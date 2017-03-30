@@ -31,9 +31,11 @@ def execute_promer(fasta1,
     coord_files = []
     for one_fasta in fasta2:
         if algo == 'nucmer':
-            cmd1 = 'nucmer -mum -b 200 -c 65 -g 90 -l 20 -p %s %s %s' % (os.path.basename(one_fasta).split('.')[0],
+            # 03.2017 => changed from -mum to -mumreference
+            cmd1 = 'nucmer -mumreference -b 200 -c 65 -g 90 -l 20 -p %s %s %s' % (os.path.basename(one_fasta).split('.')[0],
                                                                          fasta1,
                                                                          one_fasta)
+            print cmd1
             a, b, c = shell_command.shell_command(cmd1)
             if c != 0:
                 raise("%s" % b)
@@ -221,7 +223,7 @@ def coord_file2circos_heat_file(coords_input, contigs_add, algo="nucmer"):
                 contig = re.sub("\|", "", l[9+shift])
                 start = int(l[0]) + contigs_add[contig][0]
                 end = int(l[0])+1 + contigs_add[contig][0]
-                f.write("%s\t%s\t%s\t0\tz=0\n" % (contig, start, end))
+                f.write("%s\t%s\t%s\t30\tz=0\n" % (contig, start, end))
                 f.write("%s\t%s\t%s\t100\tz=0\n" % (contig, start, end))
 
             contig = re.sub("\|", "", l[9+shift])
@@ -319,6 +321,7 @@ def get_gaps_from_start_stop_lists(contig2start_stop_lists, contigs_add, min_gap
             else:
                 gap_data[contig].append([max(data_sort['stop']), contigs_add[contig][1]])
         return gap_data
+
 
 
 
