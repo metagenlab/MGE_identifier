@@ -38,7 +38,7 @@ def execute_promer(fasta1,
             print cmd1
             a, b, c = shell_command.shell_command(cmd1)
             if c != 0:
-                raise("%s" % b)
+                raise Exception("%s" % b)
 
             if coords:
                 cmd2 = 'show-coords -T -r -c -L %s -I %s %s.delta > %s.coords' % (minimum_align_length,
@@ -47,7 +47,7 @@ def execute_promer(fasta1,
                                                                                   os.path.basename(one_fasta).split('.')[0])
                 a, b, c = shell_command.shell_command(cmd2)
                 if c != 0:
-                    raise("%s" % b)
+                    raise Exception("%s" % b)
 
 
         elif algo == 'promer':
@@ -58,7 +58,7 @@ def execute_promer(fasta1,
 
             a, b, c = shell_command.shell_command(cmd1)
             if c != 0:
-                raise("%s" % b)
+                raise Exception("%s" % b)
 
             if coords:
                 # show-coords -T -r -c -L 100 -I 30 out.delta
@@ -69,7 +69,7 @@ def execute_promer(fasta1,
 
                 a, b, c = shell_command.shell_command(cmd2)
                 if c != 0:
-                    raise("%s" % b)
+                    raise Exception("%s" % b)
 
 
 
