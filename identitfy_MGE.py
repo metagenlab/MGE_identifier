@@ -74,7 +74,7 @@ class MGE:
                 self.query_genome2gap_pistions[query_genome] = data_sort
 
 
-    def plot_gap_series_plot(self, directory_path, genome_size, MGE_table_path, samtools_depth_file):
+    def plot_gap_series_plot(self, directory_path, genome_size, MGE_table_path, samtools_depth_file=False):
         import os
         import rpy2.robjects.numpy2ri
         import rpy2.robjects as robjects
@@ -85,6 +85,60 @@ class MGE:
         print 'dir path', directory_path
         print 'mge table path', MGE_table_path
         print 'depth file', samtools_depth_file
+
+        if samtools_depth_file:
+
+            depth_data = '''
+
+            my_file <- read.table("%s", header=FALSE)
+
+            contig_lengths <- table(factor(my_file$V1, levels=unique(my_file$V1)))
+
+            contig_limits = c()
+            length = 0
+            for (i in contig_lengths){
+                length <- length + as.numeric(i)
+                print('length')
+                print(length)
+                contig_limits <- c(contig_limits,length)
+            }
+            print('ok')
+            print(contig_limits)
+            cov_data <- my_file$V3
+
+            median_depth = median(cov_data)
+            max_depth = max(cov_data)
+
+            newlength <- ceiling(length(cov_data)/100)*100
+            cov_data[newlength] <- NA
+            cov_matrix <- matrix(cov_data,nrow=10)
+            cov_100bp <- colMeans(cov_matrix, na.rm=TRUE)
+            write.table(as.data.frame(cov_100bp), "coverage_100bp.tab", sep="\t")
+
+                #par(mfrow=c(1,2))
+            x<-seq(10,newlength,10)
+            print(max_depth)
+
+            w <- which(cov_100bp > (3*median_depth))
+            cov_100bp[w] <- 3*median_depth
+
+            ''' % samtools_depth_file
+
+            depth_plot = '''
+            par(fig=c(0,1,0.62,1), new=TRUE, bty = 'n')
+            plot(x, cov_100bp,type='l',col='light grey', las=2, main='', ylim=c(0,3.1*median_depth), xlab="", ylab="Sequencing depth", xaxt='n')
+            f1001 <- rep(1/1001,1001)
+            y_sym <- filter(cov_100bp, f1001,sides=2)
+            lines(x,y_sym,col="blue")
+            text(length(cov_data)*0.1,3*median_depth*0.95, paste("Median depth:", median_depth), col="blue")
+            #abline(v=contig_limits, col=rgb(1, 0, 0, 0.5), lty=3, lwd=0.5)
+            abline(v=gaps_table$V2[1:length(gaps_table$V2-1)],col="blue", lty=3, lwd=0.5)
+            abline(v=gaps_table$V3[1:length(gaps_table$V2-1)],col="blue", lty=3, lwd=0.5)
+
+            '''
+        else:
+            depth_data = ''
+            depth_plot = ''
 
         str_cmd = """
     library(IRanges)
@@ -143,41 +197,12 @@ return (genome)
 
     genome <- plot_gap_series_histo(files, as.integer(%s))
 
-    my_file <- read.table("%s", header=FALSE)
-
-    contig_lengths <- table(factor(my_file$V1, levels=unique(my_file$V1)))
-
-    contig_limits = c()
-    length = 0
-    for (i in contig_lengths){
-        length <- length + as.numeric(i)
-        print('length')
-        print(length)
-        contig_limits <- c(contig_limits,length)
-    }
-    print('ok')
-    print(contig_limits)
-    cov_data <- my_file$V3
-
-    median_depth = median(cov_data)
-    max_depth = max(cov_data)
-
-    newlength <- ceiling(length(cov_data)/100)*100
-    cov_data[newlength] <- NA
-    cov_matrix <- matrix(cov_data,nrow=10)
-    cov_100bp <- colMeans(cov_matrix, na.rm=TRUE)
-    write.table(as.data.frame(cov_100bp), "coverage_100bp.tab", sep="\t")
-
-        #par(mfrow=c(1,2))
-    x<-seq(10,newlength,10)
-    print(max_depth)
-
-    w <- which(cov_100bp > (3*median_depth))
-    cov_100bp[w] <- 3*median_depth
 
 
+    %s
 
-    CairoPDF("%s", height=12, width=19)
+
+    pdf("%s", height=12, width=19)
     par(fig=c(0,1,0,0.62), new=TRUE, bty = 'n')
     plot_gap_series(files,%s)
     abline(v=gaps_table$V2[1:length(gaps_table$V2-1)],col="blue", lwd=0.8)
@@ -193,15 +218,7 @@ return (genome)
     #abline(v=gaps_table$V2[1:length(gaps_table$V2-1)],col="blue", lty=3, lwd=0.5)
     #abline(v=gaps_table$V3[1:length(gaps_table$V2-1)],col="blue", lty=3, lwd=0.5)
 
-    par(fig=c(0,1,0.62,1), new=TRUE, bty = 'n')
-    plot(x, cov_100bp,type='l',col='light grey', las=2, main='', ylim=c(0,3.1*median_depth), xlab="", ylab="Sequencing depth", xaxt='n')
-    f1001 <- rep(1/1001,1001)
-    y_sym <- filter(cov_100bp, f1001,sides=2)
-    lines(x,y_sym,col="blue")
-    text(length(cov_data)*0.1,3*median_depth*0.95, paste("Median depth:", median_depth), col="blue")
-    #abline(v=contig_limits, col=rgb(1, 0, 0, 0.5), lty=3, lwd=0.5)
-    abline(v=gaps_table$V2[1:length(gaps_table$V2-1)],col="blue", lty=3, lwd=0.5)
-    abline(v=gaps_table$V3[1:length(gaps_table$V2-1)],col="blue", lty=3, lwd=0.5)
+    %s
 
     #dev.off()
 
@@ -209,9 +226,10 @@ return (genome)
                    """ % (directory_path,
                           MGE_table_path,
                           genome_size,
-                          samtools_depth_file,
+                          depth_data,
                           plot2_outpath,
-                          genome_size)
+                          genome_size,
+                          depth_plot)
         print str_cmd
 
         robjects.r(str_cmd)
@@ -300,6 +318,7 @@ return (genome)
 
     def extract_annotation(self, ranges, genbank_file):
         from Bio import SeqIO
+        import re
 
         with open(genbank_file, 'r') as g:
             records = [i for i in SeqIO.parse(g, 'genbank')]
@@ -319,7 +338,7 @@ return (genome)
                 mge_record.accession = 'MGE_%s' % n
                 mge_record.name = 'MGE_%s' % n
                 f.write('%s\t%s\t%s\n' % (n,
-                                        len(mge_record.seq),
+                                        len(re.sub('N', '', str(mge_record.seq))),
                                         len(mge_record.features)))
                 SeqIO.write(mge_record,o, 'genbank')
         f.close()
@@ -344,12 +363,14 @@ return (genome)
             seq = self.cumulated_sequences[start:stop].seq
             if 'N' in str(seq):
                 gaps = 'YES'
-                # remove 'nnn' before calculating GC
+                # remove 'nnn' before calculating GC and seq length
                 seq_bis = Seq.Seq(re.sub('N', '', str(seq)))
                 gc_content = round(GC(seq_bis),2)
+                mge_length = len(seq_bis)
             else:
                 gaps = 'NO'
                 gc_content = round(GC(seq), 2)
+                mge_length = len(seq)
             if self.samtools_depth_files is not False:
                 median_depth = []
                 sd_depth = []
@@ -364,7 +385,7 @@ return (genome)
                 mge_data = 'MGE_%s\t%s\t%s\t%s\t%s\t%s\n' % (i,
                                                               str(start+1),
                                                               str(stop+1),
-                                                              range[1]-range[0],
+                                                              mge_length,
                                                               gaps,
                                                               gc_content)
                 if self.samtools_depth_files:
@@ -419,22 +440,37 @@ if __name__ == '__main__':
     arg_parser.add_argument("-g", "--gbk", help="reference genbank (to extract annotation of putative MGEs)")
     arg_parser.add_argument("-q", "--fasta2", help="query fasta", nargs='+')
     arg_parser.add_argument("-a", "--algo", help="algorythm to use to compare the genome (megablast, nucmer or promer)", default="nucmer")
-    arg_parser.add_argument("-m", "--min_gap_size", help="minimum gap size to consider", default=1000)
+    arg_parser.add_argument("-m", "--min_gap_size", help="minimum gap size to consider", default=2000)
+    arg_parser.add_argument("-d", "--merge_distance", help="max distance to merge 2 gapped regions", default=2000)
     arg_parser.add_argument("-s", "--samtools_depth", help="samtools depth file", default=False, nargs='+')
     arg_parser.add_argument("-f", "--freq_genomes", help="minimum freq to consider gap position (defaul: 0.9)", default=0.9, type=float)
     args = arg_parser.parse_args()
+
+    print "samtools_depth", args.samtools_depth
+    
     print args.freq_genomes, type(args.freq_genomes)
-    test_MGE = MGE(args.fasta1, args.fasta2, samtools_depth_files=args.samtools_depth)
+    test_MGE = MGE(args.fasta1,
+                   args.fasta2,
+                   samtools_depth_files=args.samtools_depth,
+                   run_nucmer=True)
     test_MGE._gap_positions2gap_counts(args.freq_genomes)
     test_MGE._gap_ranges_from_gap_positions()
-    test_MGE._merge_close_range(2000) # 1000
-    test_MGE._filter_small_ranges(1000) # 4000
+    test_MGE._merge_close_range(int(args.merge_distance)) # 1000
+    test_MGE._filter_small_ranges(int(args.min_gap_size)) # 4000
     if args.gbk:
         test_MGE.extract_annotation(test_MGE.filtered_ranges, args.gbk)
-    test_MGE.plot_gap_series_plot(test_MGE.working_dir,
-                                  test_MGE.reference_cumulated_length,
-                                  test_MGE.mge_table,
-                                  args.samtools_depth[0])
+    if args.samtools_depth:
+        print 'samt depth!!', args.samtools_depth
+        test_MGE.plot_gap_series_plot(test_MGE.working_dir,
+                                      test_MGE.reference_cumulated_length,
+                                      test_MGE.mge_table,
+                                      args.samtools_depth[0])
+    else:
+        print 'no depth!'
+        test_MGE.plot_gap_series_plot(test_MGE.working_dir,
+                                      test_MGE.reference_cumulated_length,
+                                      test_MGE.mge_table,
+                                      False)
 
     with open("gap_complete_ranges.tab", 'w') as f1:
         for row in test_MGE.range_list:

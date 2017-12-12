@@ -31,8 +31,8 @@ def execute_promer(fasta1,
     coord_files = []
     for one_fasta in fasta2:
         if algo == 'nucmer':
-            # 03.2017 => changed from -mum to -mumreference
-            cmd1 = 'nucmer -mumreference -b 200 -c 65 -g 90 -l 20 -p %s %s %s' % (os.path.basename(one_fasta).split('.')[0],
+            # 03.2017 => changed from -mum to -mumreference. 01.06.17 removed -mumreference
+            cmd1 = 'nucmer -b 200 -c 65 -g 90 -l 20 -p %s %s %s' % (os.path.basename(one_fasta).split('.')[0],
                                                                          fasta1,
                                                                          one_fasta)
             print cmd1
