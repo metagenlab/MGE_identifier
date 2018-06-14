@@ -68,7 +68,7 @@ class MGE:
                 data = pd.DataFrame({'start': start_list, 'stop': stop_list })
                 data.start = data.start.astype(np.int64)
                 data.stop = data.stop.astype(np.int64)
-                data_sort = data.sort(columns=["start"])
+                data_sort = data.sort_values(by=["start"])
                 data_sort.to_csv("%s_gaps.csv" % delta_file.split('.')[0], sep='\t')
 
                 self.query_genome2gap_pistions[query_genome] = data_sort
