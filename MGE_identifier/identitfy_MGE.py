@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-import nucmer_utility
+from TP_utils import nucmer_utility
 
 class MGE:
     def __init__(self, reference_genome, query_genomes, samtools_depth_files=False, run_nucmer=False):
