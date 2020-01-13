@@ -48,7 +48,7 @@ class MGE:
 
         for delta_file in self.delta_files:
 
-            print 'contig adds', self.contig_add
+            print('contig adds', self.contig_add)
 
             contig2start_stop_list = nucmer_utility.delta_file2start_stop_list(delta_file,
                                        contigs_add=self.contig_add,
@@ -82,9 +82,9 @@ class MGE:
 
         plot2_outpath = os.path.join(directory_path, "gap_plot_merged.pdf")
 
-        print 'dir path', directory_path
-        print 'mge table path', MGE_table_path
-        print 'depth file', samtools_depth_file
+        print ('dir path', directory_path)
+        print ('mge table path', MGE_table_path)
+        print ('depth file', samtools_depth_file)
 
         if samtools_depth_file:
 
@@ -230,7 +230,7 @@ return (genome)
                           plot2_outpath,
                           genome_size,
                           depth_plot)
-        print str_cmd
+        #print str_cmd
 
         robjects.r(str_cmd)
 
@@ -268,7 +268,7 @@ return (genome)
                 # +1 because of python indexing starting from 0
                 f3.write(str(position+1) + '\n')
 
-        print 'length gap positions', len(self.gap_positions)
+        print ('length gap positions', len(self.gap_positions))
 
     def _gap_ranges_from_gap_positions(self):
         self.range_list = []
@@ -283,8 +283,8 @@ return (genome)
 
         # last range
         self.range_list.append(new_range)
-        print len(self.range_list)
-        print self.range_list
+        print (len(self.range_list))
+        print (self.range_list)
 
     def _merge_close_range(self, max_distance):
         self.merged_ranges = []
@@ -350,7 +350,7 @@ return (genome)
         import statistics
         import re
         i=1
-        print len(self.merged_ranges)
+        print(len(self.merged_ranges))
 
 
 
@@ -446,9 +446,9 @@ if __name__ == '__main__':
     arg_parser.add_argument("-f", "--freq_genomes", help="minimum freq to consider gap position (defaul: 0.9)", default=0.9, type=float)
     args = arg_parser.parse_args()
 
-    print "samtools_depth", args.samtools_depth
+    print("samtools_depth", args.samtools_depth)
     
-    print args.freq_genomes, type(args.freq_genomes)
+    print (args.freq_genomes, type(args.freq_genomes))
     test_MGE = MGE(args.fasta1,
                    args.fasta2,
                    samtools_depth_files=args.samtools_depth,
@@ -460,13 +460,13 @@ if __name__ == '__main__':
     if args.gbk:
         test_MGE.extract_annotation(test_MGE.filtered_ranges, args.gbk)
     if args.samtools_depth:
-        print 'samt depth!!', args.samtools_depth
+        print ('samt depth!!', args.samtools_depth)
         test_MGE.plot_gap_series_plot(test_MGE.working_dir,
                                       test_MGE.reference_cumulated_length,
                                       test_MGE.mge_table,
                                       args.samtools_depth[0])
     else:
-        print 'no depth!'
+        print ('no depth!')
         test_MGE.plot_gap_series_plot(test_MGE.working_dir,
                                       test_MGE.reference_cumulated_length,
                                       test_MGE.mge_table,
