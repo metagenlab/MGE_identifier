@@ -162,10 +162,12 @@ class MGE:
       # read gap files
 
   plot_gap_series <- function(file_list, genome_size){
+
       plot(c(0, genome_size), c(0, 12*length(file_list)), type = "n", xlab = "", ylab = "", main = "", yaxt='n')
 
       for (i in 1:length(file_list)){
-
+          print("file")
+          print(i)
           t <- read.table(file_list[i], header=TRUE)
 
           if (i%%%%2 == 0){
@@ -173,7 +175,6 @@ class MGE:
           }else{
               rect(t[,1], (12*i) + 5, t[,2], (12*i) + 12, col = "red", border = "red")
               }
-
       }
   }
 
@@ -204,7 +205,9 @@ return (genome)
 
     svglite("%s", height=12, width=19)
     par(fig=c(0,1,0,0.62), new=TRUE, bty = 'n')
-    plot_gap_series(files,%s)
+
+    plot_gap_series(files, %s)
+
     abline(v=gaps_table$V2[1:length(gaps_table$V2-1)],col="blue", lwd=0.8)
     abline(v=gaps_table$V3[1:length(gaps_table$V2-1)],col="blue", lwd=0.8)
 
@@ -212,8 +215,6 @@ return (genome)
     genome_mat <- matrix(genome,nrow=50)
     # simplify plot (mean of each 50bp)
     genome_50bp <- colMeans(genome_mat, na.rm=TRUE)
-    print("genome_50bp")
-    print(genome_50bp)
     barplot(genome_50bp, xlab="", ylab="gap in # genomes")
     abline(h=round(length(files)*0.5), col="red")
     abline(h=round(length(files)*0.9), col="red")
