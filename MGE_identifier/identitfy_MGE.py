@@ -61,17 +61,25 @@ class MGE:
             query_genome = delta_file.split('.')[0]
             start_list = []
             stop_list = []
-            for contig in gap_data:
-                for gap in gap_data[contig]:
-                    start_list.append(gap[0])
-                    stop_list.append(gap[1])
-                data = pd.DataFrame({'start': start_list, 'stop': stop_list })
-                data.start = data.start.astype(np.int64)
-                data.stop = data.stop.astype(np.int64)
-                data_sort = data.sort_values(by=["start"])
-                data_sort.to_csv("%s_gaps.csv" % delta_file.split('.')[0], sep='\t')
+            if len(gap_data) > 0:
+                for contig in gap_data:
+                    for gap in gap_data[contig]:
+                        start_list.append(gap[0])
+                        stop_list.append(gap[1])
+                    data = pd.DataFrame({'start': start_list, 'stop': stop_list })
+                    data.start = data.start.astype(np.int64)
+                    data.stop = data.stop.astype(np.int64)
+                    data_sort = data.sort_values(by=["start"])
+                    data_sort.to_csv("%s_gaps.csv" % delta_file.split('.')[0], sep='\t')
 
-                self.query_genome2gap_pistions[query_genome] = data_sort
+                    self.query_genome2gap_pistions[query_genome] = data_sort
+            else:
+                print("no gaps with %s, create fake gap file" % delta_file)
+                # 	start	stop
+                #0	3340209	3456289
+                with open("%s_gaps.csv" % delta_file.split('.')[0], 'w') as f:
+                    f.wite("\tstart\tstop\n0\t1\t2\n")
+
 
 
     def plot_gap_series_plot(self, directory_path, genome_size, MGE_table_path, samtools_depth_file=False):
