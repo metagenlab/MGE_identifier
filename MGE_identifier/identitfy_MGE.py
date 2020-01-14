@@ -222,7 +222,7 @@ return (genome)
 
     %s
 
-    #dev.off()
+    dev.off()
 
 
                    """ % (directory_path,
