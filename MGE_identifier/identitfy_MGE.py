@@ -78,7 +78,7 @@ class MGE:
                 # 	start	stop
                 #0	3340209	3456289
                 with open("%s_gaps.csv" % delta_file.split('.')[0], 'w') as f:
-                    f.wite("\tstart\tstop\n0\t1\t2\n")
+                    f.write("\tstart\tstop\n0\t1\t2\n")
 
 
 
