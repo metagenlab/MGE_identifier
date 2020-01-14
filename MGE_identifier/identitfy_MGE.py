@@ -80,7 +80,7 @@ class MGE:
         import rpy2.robjects as robjects
         rpy2.robjects.numpy2ri.activate()
 
-        plot2_outpath = os.path.join(directory_path, "gap_plot_merged.pdf")
+        plot2_outpath = os.path.join(directory_path, "gap_plot_merged.svg")
 
         print ('dir path', directory_path)
         print ('mge table path', MGE_table_path)
@@ -202,7 +202,7 @@ return (genome)
     %s
 
 
-    pdf("%s", height=12, width=19)
+    svglite("%s", height=12, width=19)
     par(fig=c(0,1,0,0.62), new=TRUE, bty = 'n')
     plot_gap_series(files,%s)
     abline(v=gaps_table$V2[1:length(gaps_table$V2-1)],col="blue", lwd=0.8)
