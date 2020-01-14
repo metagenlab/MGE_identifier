@@ -142,7 +142,7 @@ class MGE:
 
         str_cmd = """
     library(IRanges)
-    library(Cairo)
+    library(svglite)
 
       plotRanges <- function(x, xlim = x, main = deparse(substitute(x)),
                              col = "black", sep = 0.5, ...)
