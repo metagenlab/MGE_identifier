@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 
 from TPutils import nucmer_utility
 
@@ -22,6 +22,7 @@ class MGE:
         self.reference_cumulated_length = self._get_cumulated_fasta_length(self.reference_genome_records)
         self.cumulated_sequences = self._get_cumulated_fasta_seq(self.reference_genome_records)
         self.filtered_ranges = []
+        self.tmp_files = []
 
         if not isinstance(query_genomes, list):
             self.query_genomes = list(query_genomes)
@@ -36,27 +37,37 @@ class MGE:
         if run_nucmer:
 
             self.coord_files, self.delta_files = nucmer_utility.execute_promer(self.reference_genome,
-                                                                self.query_genomes,
-                                                                coords=False)
+                                                                               self.query_genomes,
+                                                                               coords=False)
+
         else:
             self.coord_files = []
             self.delta_files = []
             for one_fasta in self.query_genomes:
-                self.delta_files.append('%s.delta' % os.path.basename(one_fasta).split('.')[0])
+                delta_filename = '%s.delta' % os.path.basename(one_fasta).split('.')[0]
+                self.delta_files.append(delta_filename)
 
+        self.tmp_files += self.delta_files
+        self.tmp_files += self.coord_files
+        print("coord_files")
+        print(self.coord_files)
         self.contig_add = nucmer_utility.get_contigs_coords(self.reference_genome)
 
         for delta_file in self.delta_files:
 
-            print('contig adds', self.contig_add)
+            #print('contig adds', self.contig_add)
 
-            contig2start_stop_list = nucmer_utility.delta_file2start_stop_list(delta_file,
-                                       contigs_add=self.contig_add,
-                                       algo='nucmer',
-                                       minimum_identity=85)
+            contig2start_stop_list, coords_file = nucmer_utility.delta_file2start_stop_list(delta_file,
+                                                                                             contigs_add=self.contig_add,
+                                                                                             algo='nucmer',
+                                                                                             minimum_identity=85)
+                                                                                             
+        
+            self.tmp_files.append(coords_file)
+
             gap_data = nucmer_utility.get_gaps_from_start_stop_lists(contig2start_stop_list,
-                                           contigs_add=self.contig_add,
-                                           min_gap_size=1000)
+                                                                     contigs_add=self.contig_add,
+                                                                     min_gap_size=1000)
 
             query_genome = delta_file.split('.')[0]
             start_list = []
@@ -74,11 +85,13 @@ class MGE:
 
                     self.query_genome2gap_pistions[query_genome] = data_sort
             else:
-                print("no gaps with %s, create fake gap file" % delta_file)
+                print("Warning: No gaps with %s" % delta_file)
                 # 	start	stop
                 #0	3340209	3456289
                 with open("%s_gaps.csv" % delta_file.split('.')[0], 'w') as f:
                     f.write("\tstart\tstop\n0\t1\t2\n")
+            
+            self.tmp_files .append( "%s_gaps.csv" % delta_file.split('.')[0])
 
 
 
@@ -88,11 +101,11 @@ class MGE:
         import rpy2.robjects as robjects
         rpy2.robjects.numpy2ri.activate()
 
-        plot2_outpath = os.path.join(directory_path, "gap_plot_merged.svg")
+        plot2_outpath = os.path.join(directory_path, "gap_plot_merged.pdf")
 
-        print ('dir path', directory_path)
-        print ('mge table path', MGE_table_path)
-        print ('depth file', samtools_depth_file)
+        #print ('dir path', directory_path)
+        #print ('mge table path', MGE_table_path)
+        #print ('depth file', samtools_depth_file)
 
         if samtools_depth_file:
 
@@ -106,12 +119,9 @@ class MGE:
             length = 0
             for (i in contig_lengths){
                 length <- length + as.numeric(i)
-                print('length')
-                print(length)
                 contig_limits <- c(contig_limits,length)
             }
-            print('ok')
-            print(contig_limits)
+
             cov_data <- my_file$V3
 
             median_depth = median(cov_data)
@@ -125,7 +135,6 @@ class MGE:
 
                 #par(mfrow=c(1,2))
             x<-seq(10,newlength,10)
-            print(max_depth)
 
             w <- which(cov_100bp > (3*median_depth))
             cov_100bp[w] <- 3*median_depth
@@ -149,8 +158,9 @@ class MGE:
             depth_plot = ''
 
         str_cmd = """
-    library(IRanges)
-    library(svglite)
+    suppressWarnings(suppressMessages(library(IRanges)))
+    suppressWarnings(suppressMessages(library(Cairo)))
+    suppressWarnings(suppressMessages(library(stringr)))
 
       plotRanges <- function(x, xlim = x, main = deparse(substitute(x)),
                              col = "black", sep = 0.5, ...)
@@ -174,14 +184,16 @@ class MGE:
       plot(c(0, genome_size), c(0, 12*length(file_list)), type = "n", xlab = "", ylab = "", main = "", yaxt='n')
 
       for (i in 1:length(file_list)){
-          print("file")
-          print(i)
           t <- read.table(file_list[i], header=TRUE)
-
+          if (length(file_list) < 10) {
+                # display genome labels 
+                # only if less than 10 genomes compared
+                text(x=genome_size*0.2,y=(12*i) - 10, labels=c(str_remove(str_remove(file_list[i], ".*/"), "_gaps.csv")))
+          }
           if (i%%%%2 == 0){
-              rect(t[,1], (12*i) + 5, t[,2], (12*i) + 12, col = "black")
+              rect(t[,1], (12*i) - 8, t[,2], (12*i)- 2, col = "black")
           }else{
-              rect(t[,1], (12*i) + 5, t[,2], (12*i) + 12, col = "red", border = "red")
+               rect(t[,1], (12*i) - 8, t[,2], (12*i)- 2, col = "red", border = "red")
               }
       }
   }
@@ -211,7 +223,7 @@ return (genome)
     %s
 
 
-    svglite("%s", height=12, width=19)
+    pdf("%s", height=12, width=19)
     par(fig=c(0,1,0,0.62), new=TRUE, bty = 'n')
 
     plot_gap_series(files, %s)
@@ -241,7 +253,6 @@ return (genome)
                           plot2_outpath,
                           genome_size,
                           depth_plot)
-        #print str_cmd
 
         robjects.r(str_cmd)
 
@@ -273,13 +284,15 @@ return (genome)
             for i, count in enumerate(self.genome_counts):
                 # +1 because of python indexing starting from 0
                 f4.write("%s\t%s" % (i, count) + '\n')
+            self.tmp_files.append("gap_counts.tab")
 
         with open("gap_positions.tab", 'w') as f3:
             for position in self.gap_positions:
                 # +1 because of python indexing starting from 0
                 f3.write(str(position+1) + '\n')
+            self.tmp_files.append("gap_positions.tab")
 
-        print ('length gap positions', len(self.gap_positions))
+        #print ('length gap positions', len(self.gap_positions))
 
     def _gap_ranges_from_gap_positions(self):
         self.range_list = []
@@ -294,8 +307,8 @@ return (genome)
 
         # last range
         self.range_list.append(new_range)
-        print (len(self.range_list))
-        print (self.range_list)
+        #print (len(self.range_list))
+        #print (self.range_list)
 
     def _merge_close_range(self, max_distance):
         self.merged_ranges = []
@@ -361,11 +374,17 @@ return (genome)
         import statistics
         import re
         i=1
-        print(len(self.merged_ranges))
-
-
+        #print(len(self.merged_ranges))
 
         m = open( self.mge_table , 'w')
+        header = ["n",
+                 "start",
+                 "end",
+                 "length",
+                 "gap_spanning_multiple_contigs",
+                 "gc_content"]
+
+        m.write("\t".join(header) + '\n')
 
         for range in self.merged_ranges:
 
@@ -394,11 +413,11 @@ return (genome)
                 self.filtered_ranges.append(range)
                 # +1 because of python indexing
                 mge_data = 'MGE_%s\t%s\t%s\t%s\t%s\t%s\n' % (i,
-                                                              str(start+1),
-                                                              str(stop+1),
-                                                              mge_length,
-                                                              gaps,
-                                                              gc_content)
+                                                             str(start+1),
+                                                             str(stop+1),
+                                                             mge_length,
+                                                             gaps,
+                                                             gc_content)
                 if self.samtools_depth_files:
                     for n, depth in enumerate(self.samtools_depth_files):
                         mge_data = mge_data[0:-2]+"\t%s\t%s" % (median_depth[n], sd_depth[n])
@@ -441,6 +460,13 @@ return (genome)
         for record in records:
             merged_record+=record
         return merged_record
+    
+
+    def clean_tmp_files(self):
+        import os
+        for tmpfile in self.tmp_files:
+            print("Removing tmp file %s" % tmpfile)
+            os.remove(tmpfile)
 
 if __name__ == '__main__':
     ###Argument handling.
@@ -455,11 +481,12 @@ if __name__ == '__main__':
     arg_parser.add_argument("-d", "--merge_distance", help="max distance to merge 2 gapped regions", default=2000)
     arg_parser.add_argument("-s", "--samtools_depth", help="samtools depth file", default=False, nargs='+')
     arg_parser.add_argument("-f", "--freq_genomes", help="minimum freq to consider gap position (defaul: 0.9)", default=0.9, type=float)
+    arg_parser.add_argument("-t", "--keep_tmp", help="Keep temporary files (delta files, detailed gap ranges)", action="store_true")
     args = arg_parser.parse_args()
 
-    print("samtools_depth", args.samtools_depth)
+    print("Samtools_depth", args.samtools_depth)
     
-    print (args.freq_genomes, type(args.freq_genomes))
+    print ("Freqency threshold:", args.freq_genomes)
     test_MGE = MGE(args.fasta1,
                    args.fasta2,
                    samtools_depth_files=args.samtools_depth,
@@ -471,13 +498,11 @@ if __name__ == '__main__':
     if args.gbk:
         test_MGE.extract_annotation(test_MGE.filtered_ranges, args.gbk)
     if args.samtools_depth:
-        print ('samt depth!!', args.samtools_depth)
         test_MGE.plot_gap_series_plot(test_MGE.working_dir,
                                       test_MGE.reference_cumulated_length,
                                       test_MGE.mge_table,
                                       args.samtools_depth[0])
     else:
-        print ('no depth!')
         test_MGE.plot_gap_series_plot(test_MGE.working_dir,
                                       test_MGE.reference_cumulated_length,
                                       test_MGE.mge_table,
@@ -487,10 +512,15 @@ if __name__ == '__main__':
         for row in test_MGE.range_list:
             data = [str(i) for i in row]
             f1.write('\t'.join(data)+'\n')
+        test_MGE.tmp_files.append("gap_complete_ranges.tab")
     with open("gap_merged_ranges.tab", 'w') as f2:
 
         for row in test_MGE.merged_ranges:
             data = [str(i) for i in row]
             f2.write('\t'.join(data)+'\n')
+        test_MGE.tmp_files.append("gap_merged_ranges.tab")
+    
+    if not args.keep_tmp:
+        test_MGE.clean_tmp_files()
 
 
